@@ -24,6 +24,7 @@
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    position: relative;
   }
 
   header {
@@ -83,7 +84,7 @@
 
   textarea { resize: none; }
 
-  button.post, button.ok {
+  button.post, button.ok, button.cloudinary-upload {
     background: var(--accent);
     border: none;
     padding: .8rem;
@@ -91,9 +92,21 @@
     font-size: 1.1rem;
     cursor: pointer;
     transition: .2s;
+    margin-top: 0.5rem;
   }
 
-  button.post:hover, button.ok:hover { background: var(--accent-hover); }
+  button.post:hover, button.ok:hover, button.cloudinary-upload:hover { 
+    background: var(--accent-hover); 
+  }
+
+  .profile-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 1rem;
+    display: none;
+  }
 
   .profile-card {
     background: var(--card-bg);
@@ -103,9 +116,22 @@
     margin-top: 2rem;
     box-shadow: 0 0 20px rgba(88,166,255,0.3);
     animation: pop .4s ease-in-out;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    text-align: left;
   }
 
-  .profile-card h2 { color: var(--accent); }
+  .profile-card img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    justify-self: center;
+  }
+
+  .profile-card h2 { color: var(--accent); margin: 0; }
 
   .profile-links a {
     display: block;
@@ -116,6 +142,78 @@
   }
 
   .profile-links a:hover { color: var(--accent-hover); }
+
+  .website-title {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-top: 1rem;
+    text-align: center;
+    color: var(--accent);
+  }
+
+  .tagline {
+    font-size: 0.9rem;
+    margin: 0.5rem auto 1rem;
+    text-align: center;
+    max-width: 80%;
+    background: linear-gradient(90deg, #ff79c6, #50fa7b, #8be9fd, #bd93f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shine 3s infinite alternate;
+  }
+
+  @keyframes shine {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+
+  footer {
+    margin-top: auto;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #8b949e;
+    width: 100%;
+  }
+
+  .floating-chat {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: var(--accent);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    z-index: 100;
+  }
+
+  .popup-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .popup-content {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: var(--radius);
+    max-width: 90%;
+    text-align: center;
+    animation: pop .3s ease-out;
+  }
 
   @keyframes fadeIn {
     from {opacity:0; transform: translateY(10px);}
@@ -129,6 +227,11 @@
 </style>
 </head>
 <body>
+  <div class="website-title">ConnectLu</div>
+  <div class="tagline">
+    Connection starts with trust. Connectlu is built to respect personal boundaries while opening doors to genuine human connections—shared only when you’re comfortable.
+  </div>
+
   <header>
     <button id="uploadBtn">Upload</button>
     <button id="connectBtn">Connect</button>
@@ -139,6 +242,13 @@
     <div id="uploadPage" class="page active">
       <form id="uploadForm">
         <h2>Upload Profile</h2>
+        
+        <img id="profilePreview" class="profile-preview" alt="Profile Preview" />
+
+        <button type="button" id="uploadProfilePic" class="cloudinary-upload">Upload Profile Picture</button>
+
+        <input type="hidden" id="secure_url" name="secure_url" />
+        <input type="hidden" id="public_id" name="public_id" />
 
         <input type="text" id="name" placeholder="Name" required />
 
@@ -148,7 +258,7 @@
           <option value="female">Female</option>
         </select>
 
-        <textarea id="bio" maxlength="30" placeholder="Bio (max 30 chars)" required></textarea>
+        <textarea id="bio" maxlength="100" placeholder="Bio (max 100 chars)" required></textarea>
 
         <!-- Platform 1 (Required) -->
         <input type="text" id="platform_1_name" placeholder="Platform 1 Name" required />
@@ -184,6 +294,15 @@
     </div>
   </main>
 
+  <footer>
+    © 2026 ConnectLu · Built with ❤️ by YAN
+  </footer>
+
+  <div class="floating-chat" id="chatIcon">💬</div>
+
+  <!-- Cloudinary Upload Widget Script -->
+  <script src="https://upload-widget.cloudinary.com/latest/global/all.js" type="text/javascript"></script>
+
   <script>
     /* --------------------------------------------------------------
        UI navigation
@@ -195,6 +314,10 @@
     const uploadForm = document.getElementById('uploadForm');
     const connectForm= document.getElementById('connectForm');
     const profileDisplay = document.getElementById('profileDisplay');
+    const profilePreview = document.getElementById('profilePreview');
+    const secureUrlInput = document.getElementById('secure_url');
+    const publicIdInput = document.getElementById('public_id');
+    const chatIcon = document.getElementById('chatIcon');
 
     uploadBtn.onclick = () => {
       uploadPage.classList.add('active');
@@ -214,6 +337,40 @@
     maxDate.setDate(today.getDate() + 7);
     dateInput.min = today.toISOString().split('T')[0];
     dateInput.max = maxDate.toISOString().split('T')[0];
+
+    /* --------------------------------------------------------------
+       Cloudinary Upload Widget
+       -------------------------------------------------------------- */
+    document.getElementById('uploadProfilePic').addEventListener('click', function() {
+      const widget = cloudinary.createUploadWidget({
+        cloudName: 'dtnxo8dox',
+        uploadPreset: 's9gdgu7t',
+        sources: ['local', 'url', 'camera'],
+        cropping: true,
+        croppingAspectRatio: 1,
+        showSkipCropButton: false,
+        croppingCoordinatesMode: 'custom',
+        multiple: false,
+        maxFiles: 1,
+        maxImageFileSize: 3000000, // 3MB
+        clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif']
+      }, (error, result) => {
+        if (!error && result && result.event === 'success') {
+          // Store the secure_url and public_id
+          secureUrlInput.value = result.info.secure_url;
+          publicIdInput.value = result.info.public_id;
+          
+          // Show preview
+          profilePreview.src = result.info.secure_url;
+          profilePreview.style.display = 'block';
+        } else if (error) {
+          console.error('Cloudinary Upload Error:', error);
+          alert('Upload failed. Please try again.');
+        }
+      });
+
+      widget.open();
+    });
 
     /* --------------------------------------------------------------
        Helper to safely call Android bridge if it exists
@@ -242,6 +399,8 @@
         platform_3_name: document.getElementById('platform_3_name').value,
         platform_3_link: document.getElementById('platform_3_link').value,
         d_line: document.getElementById('d_line').value,
+        secure_url: secureUrlInput.value,
+        public_id: publicIdInput.value
       };
 
       try {
@@ -259,6 +418,9 @@
           callAndroidMethod('requestRewardedAd', 'upload');
 
           uploadForm.reset();
+          profilePreview.style.display = 'none';
+          secureUrlInput.value = '';
+          publicIdInput.value = '';
         } else {
           alert('Error: ' + (data.error || 'Something went wrong'));
         }
@@ -268,56 +430,88 @@
     });
 
     /* --------------------------------------------------------------
-       CONNECT – count OK‑clicks, show ad every 5th click
+       Preload all profiles when "Connect" is clicked
        -------------------------------------------------------------- */
-    let okClickCount = 0;
+    let allProfiles = [];
 
-    connectForm.addEventListener('submit', async (e) => {
+    connectBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('https://social_media_connect_backend.ecethre.workers.dev/all');
+        const data = await res.json();
+        allProfiles = data.profiles || [];
+        localStorage.setItem('connectlu_profiles', JSON.stringify(allProfiles));
+      } catch (err) {
+        console.warn('Failed to load profiles:', err);
+        allProfiles = JSON.parse(localStorage.getItem('connectlu_profiles')) || [];
+      }
+    });
+
+    /* --------------------------------------------------------------
+       CONNECT – show random profile from local storage
+       -------------------------------------------------------------- */
+    connectForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      okClickCount++;
-      if (okClickCount >= 5) {
-        // fire ad and reset counter
-        callAndroidMethod('requestRewardedAd', 'connect');
-        okClickCount = 0;
+      const gender = document.getElementById('gender').value;
+      const filtered = allProfiles.filter(p => p.gender === gender);
+
+      if (filtered.length === 0) {
+        profileDisplay.innerHTML = `<p style="color:var(--error)">No profiles found for selected gender.</p>`;
+        return;
       }
 
-      const gender = document.getElementById('gender').value;
-      profileDisplay.innerHTML = '<p>Loading...</p>';
+      const randomProfile = filtered[Math.floor(Math.random() * filtered.length)];
 
-      try {
-        const res = await fetch(
-          `https://social_media_connect_backend.ecethre.workers.dev/random?gender=${encodeURIComponent(gender)}`
-        );
-        const json = await res.json();
-
-        if (json.error) {
-          profileDisplay.innerHTML = `<p style="color:var(--error)">${json.error}</p>`;
-          return;
-        }
-
-        profileDisplay.innerHTML = `
-          <div class="profile-card" style="border-left:5px solid ${
-            json.gender === 'male' ? '#1f6feb' : '#ff79c6'
-          };">
-            <h2>${json.name || 'Unknown'}</h2>
-            <p><strong>Gender:</strong> ${json.gender || 'N/A'}</p>
-            <p>${json.bio || ''}</p>
+      profileDisplay.innerHTML = `
+        <div class="profile-card" style="border-left:5px solid ${
+          randomProfile.gender === 'male' ? '#1f6feb' : '#ff79c6'
+        };">
+          ${randomProfile.secure_url ? `<img src="${randomProfile.secure_url}" alt="Profile">` : ''}
+          <div>
+            <h2>${randomProfile.name || 'Unknown'}</h2>
+            <p><strong>Gender:</strong> ${randomProfile.gender || 'N/A'}</p>
+            <p>${randomProfile.bio || ''}</p>
 
             <div class="profile-links">
-              ${json.platform_1_name ? `<a href="${json.platform_1_link}" target="_blank">${json.platform_1_name}</a>` : ''}
-              ${json.platform_2_name ? `<a href="${json.platform_2_link}" target="_blank">${json.platform_2_name}</a>` : ''}
-              ${json.platform_3_name ? `<a href="${json.platform_3_link}" target="_blank">${json.platform_3_name}</a>` : ''}
+              ${randomProfile.platform_1_name ? `<a href="${randomProfile.platform_1_link}" target="_blank">${randomProfile.platform_1_name}</a>` : ''}
+              ${randomProfile.platform_2_name ? `<a href="${randomProfile.platform_2_link}" target="_blank">${randomProfile.platform_2_name}</a>` : ''}
+              ${randomProfile.platform_3_name ? `<a href="${randomProfile.platform_3_link}" target="_blank">${randomProfile.platform_3_name}</a>` : ''}
             </div>
 
             <p style="margin-top:1rem;font-size:0.9rem;color:#999;">
-              Disappear Date: ${json.d_line || 'N/A'}
+              Disappear Date: ${randomProfile.d_line || 'N/A'}
             </p>
           </div>
-        `;
-      } catch (err) {
-        profileDisplay.innerHTML = `<p style="color:var(--error)">Network error: ${err.message}</p>`;
-      }
+        </div>
+      `;
+    });
+
+    /* --------------------------------------------------------------
+       Feedback Popup Logic
+       -------------------------------------------------------------- */
+    chatIcon.addEventListener('click', () => {
+      const popup = document.createElement('div');
+      popup.className = 'popup-overlay';
+      popup.innerHTML = `
+        <div class="popup-content">
+          <h3>🔐 Login or sign up with GitHub to give feedback.</h3>
+          <p>📺 Or click the video link <a href="https://archive.org/details/panfda" target="_blank">here</a> to know how to give feedback.</p>
+          <p>Redirecting in <span id="countdown">5</span> seconds...</p>
+        </div>
+      `;
+      document.body.appendChild(popup);
+
+      let count = 5;
+      const countdownEl = popup.querySelector('#countdown');
+      const interval = setInterval(() => {
+        count--;
+        countdownEl.textContent = count;
+        if (count <= 0) {
+          clearInterval(interval);
+          popup.remove();
+          window.open('https://github.com/OpenThoughtVoice/OpenThoughtVoice/discussions/9', '_blank');
+        }
+      }, 1000);
     });
 
     /* --------------------------------------------------------------
