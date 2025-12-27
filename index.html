@@ -119,8 +119,9 @@
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1rem;
-    align-items: center;
+    align-items: start;
     text-align: left;
+    position: relative;
   }
 
   .profile-card img {
@@ -131,7 +132,11 @@
     justify-self: center;
   }
 
-  .profile-card h2 { color: var(--accent); margin: 0; }
+  .profile-card h2 { 
+    color: var(--accent); 
+    margin: 0; 
+    font-size: 1.5rem;
+  }
 
   .profile-links a {
     display: block;
@@ -139,6 +144,7 @@
     margin: .3rem 0;
     text-decoration: none;
     transition: .2s;
+    font-size: 1rem;
   }
 
   .profile-links a:hover { color: var(--accent-hover); }
@@ -215,6 +221,85 @@
     animation: pop .3s ease-out;
   }
 
+  .fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fullscreen-header {
+    padding: 1rem;
+    background: var(--card-bg);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .close-fullscreen {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .fullscreen-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 20px;
+  }
+
+  .fullscreen-image {
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
+    cursor: zoom-in;
+    transition: transform 0.3s ease;
+  }
+
+  .fullscreen-image.zoomed {
+    transform: scale(2);
+    cursor: zoom-out;
+  }
+
+  .bio-text {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  .platform-select {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: var(--radius);
+    border: none;
+    outline: none;
+    background: #21262d;
+    color: var(--text);
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .error-message {
+    color: var(--error);
+    font-size: 0.9rem;
+    margin-top: 0.3rem;
+    display: none;
+  }
+
   @keyframes fadeIn {
     from {opacity:0; transform: translateY(10px);}
     to   {opacity:1; transform: translateY(0);}
@@ -261,16 +346,46 @@
         <textarea id="bio" maxlength="100" placeholder="Bio (max 100 chars)" required></textarea>
 
         <!-- Platform 1 (Required) -->
-        <input type="text" id="platform_1_name" placeholder="Platform 1 Name" required />
+        <select id="platform_1_name" class="platform-select" required>
+          <option value="">Select Platform 1</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="telegram">Telegram</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="snapchat">Snapchat</option>
+          <option value="github">GitHub</option>
+        </select>
         <input type="url" id="platform_1_link" placeholder="Platform 1 Link" required />
+        <div id="platform_1_error" class="error-message">Please enter a valid link for this platform</div>
 
-        <!-- Platform 2 (Optional) -->
-        <input type="text" id="platform_2_name" placeholder="Platform 2 Name" />
-        <input type="url" id="platform_2_link" placeholder="Platform 2 Link" />
+        <!-- Platform 2 (Required) -->
+        <select id="platform_2_name" class="platform-select" required>
+          <option value="">Select Platform 2</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="telegram">Telegram</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="snapchat">Snapchat</option>
+          <option value="github">GitHub</option>
+        </select>
+        <input type="url" id="platform_2_link" placeholder="Platform 2 Link" required />
+        <div id="platform_2_error" class="error-message">Please enter a valid link for this platform</div>
 
         <!-- Platform 3 (Optional) -->
-        <input type="text" id="platform_3_name" placeholder="Platform 3 Name" />
+        <select id="platform_3_name" class="platform-select">
+          <option value="">Select Platform 3 (Optional)</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="telegram">Telegram</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="snapchat">Snapchat</option>
+          <option value="github">GitHub</option>
+        </select>
         <input type="url" id="platform_3_link" placeholder="Platform 3 Link" />
+        <div id="platform_3_error" class="error-message">Please enter a valid link for this platform</div>
 
         <label for="d_line">Disappear Date:</label>
         <input type="date" id="d_line" required />
@@ -373,6 +488,86 @@
     });
 
     /* --------------------------------------------------------------
+       Platform URL validation
+       -------------------------------------------------------------- */
+    const platformDomains = {
+      'whatsapp': ['whatsapp.com'],
+      'telegram': ['t.me', 'telegram.me'],
+      'facebook': ['facebook.com', 'fb.com'],
+      'instagram': ['instagram.com'],
+      'linkedin': ['linkedin.com'],
+      'snapchat': ['snapchat.com'],
+      'github': ['github.com']
+    };
+
+    function validatePlatformUrl(platform, url) {
+      if (!url || url.trim() === '') return true; // Allow empty for optional fields
+      if (!platform || platform === '') return false;
+      
+      const domains = platformDomains[platform];
+      if (!domains) return false;
+      
+      try {
+        const urlObj = new URL(url);
+        return domains.some(domain => 
+          urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+        );
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function validatePlatformFields() {
+      let isValid = true;
+      
+      // Validate platform 1
+      const platform1Name = document.getElementById('platform_1_name').value;
+      const platform1Link = document.getElementById('platform_1_link').value;
+      const platform1Error = document.getElementById('platform_1_error');
+      
+      if (!validatePlatformUrl(platform1Name, platform1Link)) {
+        platform1Error.style.display = 'block';
+        isValid = false;
+      } else {
+        platform1Error.style.display = 'none';
+      }
+      
+      // Validate platform 2
+      const platform2Name = document.getElementById('platform_2_name').value;
+      const platform2Link = document.getElementById('platform_2_link').value;
+      const platform2Error = document.getElementById('platform_2_error');
+      
+      if (!validatePlatformUrl(platform2Name, platform2Link)) {
+        platform2Error.style.display = 'block';
+        isValid = false;
+      } else {
+        platform2Error.style.display = 'none';
+      }
+      
+      // Validate platform 3 (optional)
+      const platform3Name = document.getElementById('platform_3_name').value;
+      const platform3Link = document.getElementById('platform_3_link').value;
+      const platform3Error = document.getElementById('platform_3_error');
+      
+      if (platform3Name && platform3Link && !validatePlatformUrl(platform3Name, platform3Link)) {
+        platform3Error.style.display = 'block';
+        isValid = false;
+      } else {
+        platform3Error.style.display = 'none';
+      }
+      
+      return isValid;
+    }
+
+    // Add event listeners for real-time validation
+    document.getElementById('platform_1_name').addEventListener('change', validatePlatformFields);
+    document.getElementById('platform_1_link').addEventListener('input', validatePlatformFields);
+    document.getElementById('platform_2_name').addEventListener('change', validatePlatformFields);
+    document.getElementById('platform_2_link').addEventListener('input', validatePlatformFields);
+    document.getElementById('platform_3_name').addEventListener('change', validatePlatformFields);
+    document.getElementById('platform_3_link').addEventListener('input', validatePlatformFields);
+
+    /* --------------------------------------------------------------
        Helper to safely call Android bridge if it exists
        -------------------------------------------------------------- */
     function callAndroidMethod(method, arg) {
@@ -387,6 +582,12 @@
        -------------------------------------------------------------- */
     uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      // Validate platform fields
+      if (!validatePlatformFields()) {
+        alert('Please fix the platform link errors before submitting.');
+        return;
+      }
 
       const body = {
         name: document.getElementById('name').value,
@@ -421,6 +622,9 @@
           profilePreview.style.display = 'none';
           secureUrlInput.value = '';
           publicIdInput.value = '';
+          
+          // Reset error messages
+          document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
         } else {
           alert('Error: ' + (data.error || 'Something went wrong'));
         }
@@ -447,6 +651,41 @@
     });
 
     /* --------------------------------------------------------------
+       Fullscreen view functionality
+       -------------------------------------------------------------- */
+    function openFullscreen(url) {
+      const overlay = document.createElement('div');
+      overlay.className = 'fullscreen-overlay';
+      
+      overlay.innerHTML = `
+        <div class="fullscreen-header">
+          <button class="close-fullscreen">✕ Close</button>
+        </div>
+        <div class="fullscreen-container">
+          <img src="${url}" class="fullscreen-image" alt="Profile Image">
+        </div>
+      `;
+      
+      document.body.appendChild(overlay);
+      
+      const image = overlay.querySelector('.fullscreen-image');
+      let isZoomed = false;
+      
+      image.addEventListener('click', () => {
+        isZoomed = !isZoomed;
+        if (isZoomed) {
+          image.classList.add('zoomed');
+        } else {
+          image.classList.remove('zoomed');
+        }
+      });
+      
+      overlay.querySelector('.close-fullscreen').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+      });
+    }
+
+    /* --------------------------------------------------------------
        CONNECT – show random profile from local storage
        -------------------------------------------------------------- */
     connectForm.addEventListener('submit', (e) => {
@@ -462,20 +701,35 @@
 
       const randomProfile = filtered[Math.floor(Math.random() * filtered.length)];
 
+      // Create platform links HTML
+      let platformLinksHTML = '';
+      if (randomProfile.platform_1_name && randomProfile.platform_1_link) {
+        platformLinksHTML += `<a href="${randomProfile.platform_1_link}" target="_blank">${randomProfile.platform_1_name}</a>`;
+      }
+      if (randomProfile.platform_2_name && randomProfile.platform_2_link) {
+        platformLinksHTML += `<a href="${randomProfile.platform_2_link}" target="_blank">${randomProfile.platform_2_name}</a>`;
+      }
+      if (randomProfile.platform_3_name && randomProfile.platform_3_link) {
+        platformLinksHTML += `<a href="${randomProfile.platform_3_link}" target="_blank">${randomProfile.platform_3_name}</a>`;
+      }
+
       profileDisplay.innerHTML = `
         <div class="profile-card" style="border-left:5px solid ${
           randomProfile.gender === 'male' ? '#1f6feb' : '#ff79c6'
         };">
-          ${randomProfile.secure_url ? `<img src="${randomProfile.secure_url}" alt="Profile">` : ''}
+          ${randomProfile.secure_url ? `
+            <div style="position: relative;">
+              <img src="${randomProfile.secure_url}" alt="Profile">
+              <button class="fullscreen-btn" style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer;" title="View Fullscreen">⛶</button>
+            </div>
+          ` : ''}
           <div>
             <h2>${randomProfile.name || 'Unknown'}</h2>
             <p><strong>Gender:</strong> ${randomProfile.gender || 'N/A'}</p>
-            <p>${randomProfile.bio || ''}</p>
+            <p class="bio-text">${randomProfile.bio || ''}</p>
 
             <div class="profile-links">
-              ${randomProfile.platform_1_name ? `<a href="${randomProfile.platform_1_link}" target="_blank">${randomProfile.platform_1_name}</a>` : ''}
-              ${randomProfile.platform_2_name ? `<a href="${randomProfile.platform_2_link}" target="_blank">${randomProfile.platform_2_name}</a>` : ''}
-              ${randomProfile.platform_3_name ? `<a href="${randomProfile.platform_3_link}" target="_blank">${randomProfile.platform_3_name}</a>` : ''}
+              ${platformLinksHTML}
             </div>
 
             <p style="margin-top:1rem;font-size:0.9rem;color:#999;">
@@ -484,6 +738,13 @@
           </div>
         </div>
       `;
+      
+      // Add fullscreen event listener if image exists
+      if (randomProfile.secure_url) {
+        profileDisplay.querySelector('.fullscreen-btn').addEventListener('click', () => {
+          openFullscreen(randomProfile.secure_url);
+        });
+      }
     });
 
     /* --------------------------------------------------------------
