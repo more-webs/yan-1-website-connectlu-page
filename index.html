@@ -300,6 +300,22 @@
     display: none;
   }
 
+  /* Home Icon Styles */
+  .home-icon {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    text-decoration: none;
+    color: var(--accent);
+    z-index: 20;
+    transition: color 0.2s;
+  }
+
+  .home-icon:hover {
+    color: var(--accent-hover);
+  }
+
   @keyframes fadeIn {
     from {opacity:0; transform: translateY(10px);}
     to   {opacity:1; transform: translateY(0);}
@@ -312,9 +328,12 @@
 </style>
 </head>
 <body>
+  <!-- Home Icon -->
+  <a href="https://yan-shun-081.github.io/yan-1-website.com/" class="home-icon" title="Home">🏠</a>
+
   <div class="website-title">ConnectLu</div>
   <div class="tagline">
-    Connection starts with trust. Connectlu is built to respect personal boundaries while opening doors to genuine human connections—shared only when you’re comfortable.
+    Connection starts with trust. Connectlu is built to respect personal boundaries while opening doors to genuine human connections—shared only when you're comfortable.
   </div>
 
   <header>
@@ -355,6 +374,7 @@
           <option value="linkedin">LinkedIn</option>
           <option value="snapchat">Snapchat</option>
           <option value="github">GitHub</option>
+          <option value="archive">Archive.org</option>
         </select>
         <input type="url" id="platform_1_link" placeholder="Platform 1 Link" required />
         <div id="platform_1_error" class="error-message">Please enter a valid link for this platform</div>
@@ -369,6 +389,7 @@
           <option value="linkedin">LinkedIn</option>
           <option value="snapchat">Snapchat</option>
           <option value="github">GitHub</option>
+          <option value="archive">Archive.org</option>
         </select>
         <input type="url" id="platform_2_link" placeholder="Platform 2 Link" required />
         <div id="platform_2_error" class="error-message">Please enter a valid link for this platform</div>
@@ -383,6 +404,7 @@
           <option value="linkedin">LinkedIn</option>
           <option value="snapchat">Snapchat</option>
           <option value="github">GitHub</option>
+          <option value="archive">Archive.org</option>
         </select>
         <input type="url" id="platform_3_link" placeholder="Platform 3 Link" />
         <div id="platform_3_error" class="error-message">Please enter a valid link for this platform</div>
@@ -497,7 +519,8 @@
       'instagram': ['instagram.com'],
       'linkedin': ['linkedin.com'],
       'snapchat': ['snapchat.com'],
-      'github': ['github.com']
+      'github': ['github.com'],
+      'archive': ['archive.org']
     };
 
     function validatePlatformUrl(platform, url) {
