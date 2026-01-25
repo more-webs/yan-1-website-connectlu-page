@@ -146,14 +146,12 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
-      /* Removed min-width to prevent forced scrolling */
     }
 
     th, td {
       border: 1px solid #334155;
       padding: 10px;
       vertical-align: top;
-      /* Prevents text wrapping unless necessary */
       white-space: nowrap;
     }
 
@@ -192,14 +190,13 @@
         padding: 6px 8px;
         font-size: 13px;
         line-height: 1.3;
-        /* Allow wrapping on mobile for better fit */
-        white-space: normal;
       }
 
       /* Preserve wrapping behavior for bio and details columns on mobile */
       .bio-cell, .details-cell {
         white-space: normal;
         word-wrap: break-word;
+        max-width: 150px;
       }
 
       h1 {
