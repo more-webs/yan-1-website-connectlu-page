@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YAN_1 – Feedback & Rating</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      background: #020617;
+      color: #e5e7eb;
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+    }
+
+    h1 { margin-bottom: 10px; }
+
+    /* Profile area */
+    .profile-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .profile-area img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #334155;
+      box-shadow: 0 0 20px rgba(255,255,255,0.15);
+      background: #0f172a;
+      cursor: pointer;
+    }
+
+    .share-btn {
+      font-size: 26px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .share-btn:hover {
+      color: #38bdf8;
+    }
+
+    /* Fullscreen viewer */
+    .fullscreen {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .fullscreen img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 12px;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 30px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #334155;
+      padding: 10px;
+      vertical-align: top;
+    }
+
+    th { background: #0f172a; }
+
+    tr:nth-child(even) { background: #020617; }
+
+    a {
+      color: #38bdf8;
+      text-decoration: none;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+<h1>⭐ YAN_1 – Feedback & Rating</h1>
+
+<div class="profile-area" id="profileArea"></div>
+
+<div class="fullscreen" id="fullscreenViewer">
+  <span class="close-btn" onclick="closeFullscreen()">✕</span>
+  <img id="fullscreenImg">
+</div>
+
+<table id="sheetTable"></table>
+
+<script>
+const sheetURL =
+  "https://docs.google.com/spreadsheets/d/1_iIQHZNzO5XOzYonKg_sm7JdoS3cgJdW4wHYroLcbKk/gviz/tq?tqx=out:csv";
+
+const pageBaseURL =
+  "https://more-webs.github.io/yan-1-website-connectlu-page/page1.html";
+
+function extractDriveFileId(url) {
+  const match = url.match(/[-\w]{25,}/);
+  return match ? match[0] : null;
+}
+
+function openFullscreen(src) {
+  fullscreenImg.src = src;
+  fullscreenViewer.style.display = "flex";
+}
+
+function closeFullscreen() {
+  fullscreenViewer.style.display = "none";
+}
+
+function shareLink(codeValue) {
+  const url = `${pageBaseURL}?code=${encodeURIComponent(codeValue)}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: "ConnectLU Profile",
+      text: "Check this profile",
+      url
+    });
+  } else {
+    navigator.clipboard.writeText(url);
+    alert("Link copied to clipboard");
+  }
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const focusedCode = urlParams.get("code");
+
+fetch(sheetURL)
+  .then(res => res.text())
+  .then(csv => {
+    const rows = csv.trim().split("\n").map(r =>
+      r.split(",").map(c => c.replace(/"/g, "").trim())
+    );
+
+    const headers = rows.shift();
+
+    const profileCol = headers.findIndex(h => h.toLowerCase().includes("profile"));
+    const codeCol = headers.findIndex(h => h.toLowerCase() === "code");
+
+    const linkCols = headers.map((h, i) =>
+      /social media|google drive/i.test(h) ? i : -1
+    ).filter(i => i !== -1);
+
+    rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+
+    let orderedRows = rows;
+    if (focusedCode && codeCol !== -1) {
+      const match = rows.find(r => r[codeCol] === focusedCode);
+      if (match) {
+        orderedRows = [match, ...rows.filter(r => r !== match)];
+      }
+    }
+
+    const profileArea = document.getElementById("profileArea");
+    const table = document.getElementById("sheetTable");
+
+    /* Profile + Share */
+    if (orderedRows.length && profileCol !== -1) {
+      const row = orderedRows[0];
+      const fileId = extractDriveFileId(row[profileCol]);
+
+      if (fileId) {
+        const imgSrc = `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
+        const img = document.createElement("img");
+        img.src = imgSrc;
+        img.onclick = () => openFullscreen(imgSrc);
+        profileArea.appendChild(img);
+      }
+
+      if (codeCol !== -1) {
+        const share = document.createElement("span");
+        share.className = "share-btn";
+        share.textContent = "ᯓ➤";
+        share.onclick = () => shareLink(row[codeCol]);
+        profileArea.appendChild(share);
+      }
+    }
+
+    /* Header */
+    const trh = document.createElement("tr");
+    headers.forEach((h, i) => {
+      if (i !== profileCol) {
+        const th = document.createElement("th");
+        th.textContent = h;
+        trh.appendChild(th);
+      }
+    });
+    table.appendChild(trh);
+
+    /* Rows */
+    orderedRows.forEach(row => {
+      const tr = document.createElement("tr");
+      row.forEach((cell, i) => {
+        if (i === profileCol) return;
+
+        const td = document.createElement("td");
+        if (linkCols.includes(i) && cell.startsWith("http")) {
+          const a = document.createElement("a");
+          a.href = cell;
+          a.target = "_blank";
+          a.textContent = cell;
+          td.appendChild(a);
+        } else {
+          td.textContent = cell;
+        }
+        tr.appendChild(td);
+      });
+      table.appendChild(tr);
+    });
+  });
+</script>
+
+</body>
+</html>
