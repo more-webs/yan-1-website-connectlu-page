@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>YAN_1 – Feedback & Rating</title>
+  <title>YAN_1 CONNECTLU</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -13,15 +13,66 @@
       padding: 20px;
     }
 
-    h1 { margin-bottom: 10px; }
+    h1 { 
+      margin-bottom: 10px; 
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .home-link {
+      font-size: 28px;
+      cursor: pointer;
+      text-decoration: none;
+      color: #38bdf8;
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      max-width: 500px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .search-bar button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #38bdf8;
+      color: #020617;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .search-bar button.back {
+      background: #475569;
+      color: #e5e7eb;
+    }
 
     /* Profile area */
     .profile-area {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 14px;
+      gap: 8px;
       margin: 20px 0;
+      text-align: center;
+    }
+
+    .profile-top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
     }
 
     .profile-area img {
@@ -41,8 +92,25 @@
       user-select: none;
     }
 
-    .share-btn:hover {
-      color: #38bdf8;
+    .share-btn:hover { color: #38bdf8; }
+
+    .meta {
+      max-width: 520px;
+    }
+
+    .meta .username {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .meta .fullname {
+      color: #94a3b8;
+    }
+
+    .meta .bio {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #cbd5f5;
     }
 
     /* Fullscreen viewer */
@@ -66,15 +134,19 @@
       position: absolute;
       top: 20px;
       right: 30px;
-      font-size: 30px;
+      font-size: 44px;
+      font-weight: bold;
       cursor: pointer;
-      color: #fff;
+      color: #7f1d1d;
     }
+
+    .close-btn:hover { color: #dc2626; }
 
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      min-width: 600px;
     }
 
     th, td {
@@ -84,7 +156,6 @@
     }
 
     th { background: #0f172a; }
-
     tr:nth-child(even) { background: #020617; }
 
     a {
@@ -92,11 +163,62 @@
       text-decoration: none;
       word-break: break-all;
     }
+
+    a:hover { text-decoration: underline; }
+
+    /* ================= MOBILE OPTIMIZATION (ADDED) ================= */
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+      th, td {
+        padding: 6px 8px;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .profile-area img {
+        width: 90px;
+        height: 90px;
+      }
+
+      .meta .username {
+        font-size: 16px;
+      }
+
+      .meta .bio {
+        font-size: 13px;
+      }
+      
+      /* Fix for mobile fullscreen image positioning */
+      .fullscreen {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
 
-<h1>⭐ YAN_1 – Feedback & Rating</h1>
+<h1>
+  <a href="https://yan-shun-081.github.io/yan-1-website.com/" class="home-link">🏠</a>
+  ⭐ YAN_1 CONNECTLU
+</h1>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search by username or full name">
+  <button id="searchBtn">Search</button>
+  <button id="backBtn" class="back" style="display:none">Back</button>
+</div>
 
 <div class="profile-area" id="profileArea"></div>
 
@@ -105,7 +227,10 @@
   <img id="fullscreenImg">
 </div>
 
-<table id="sheetTable"></table>
+<!-- TABLE WRAPPED (ONLY CHANGE IN HTML) -->
+<div class="table-wrapper">
+  <table id="sheetTable"></table>
+</div>
 
 <script>
 const sheetURL =
@@ -113,6 +238,8 @@ const sheetURL =
 
 const pageBaseURL =
   "https://more-webs.github.io/yan-1-website-connectlu-page/page1.html";
+
+let originalRows = [];
 
 function extractDriveFileId(url) {
   const match = url.match(/[-\w]{25,}/);
@@ -130,104 +257,95 @@ function closeFullscreen() {
 
 function shareLink(codeValue) {
   const url = `${pageBaseURL}?code=${encodeURIComponent(codeValue)}`;
-
-  if (navigator.share) {
-    navigator.share({
-      title: "ConnectLU Profile",
-      text: "Check this profile",
-      url
-    });
-  } else {
+  navigator.share ? navigator.share({ title:"ConnectLU Profile", url }) :
     navigator.clipboard.writeText(url);
-    alert("Link copied to clipboard");
-  }
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-const focusedCode = urlParams.get("code");
+function render(rows, headers) {
+  profileArea.innerHTML = "";
+  sheetTable.innerHTML = "";
+
+  const profileCol = headers.findIndex(h => h.toLowerCase().includes("profile"));
+  const codeCol = headers.findIndex(h => h.toLowerCase() === "code");
+  const usernameCol = headers.findIndex(h => h.toLowerCase().includes("username"));
+  const fullnameCol = headers.findIndex(h => h.toLowerCase().includes("full"));
+  const bioCol = headers.findIndex(h => h.toLowerCase().includes("bio"));
+
+  if (rows.length) {
+    const r = rows[0];
+    const top = document.createElement("div");
+    top.className = "profile-top";
+
+    const fileId = extractDriveFileId(r[profileCol]);
+    if (fileId) {
+      const img = document.createElement("img");
+      img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
+      img.onclick = () => openFullscreen(img.src);
+      top.appendChild(img);
+    }
+
+    const share = document.createElement("span");
+    share.className = "share-btn";
+    share.textContent = "ᯓ➤";
+    share.onclick = () => shareLink(r[codeCol]);
+    top.appendChild(share);
+
+    profileArea.appendChild(top);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = `
+      <div class="username">@${r[usernameCol] || ""}</div>
+      <div class="fullname">${r[fullnameCol] || ""}</div>
+      <div class="bio">${r[bioCol] || ""}</div>
+    `;
+    profileArea.appendChild(meta);
+  }
+
+  const trh = document.createElement("tr");
+  headers.forEach((h,i)=>{
+    if(i!==profileCol){
+      const th=document.createElement("th");
+      th.textContent=h;
+      trh.appendChild(th);
+    }
+  });
+  sheetTable.appendChild(trh);
+
+  rows.forEach(row=>{
+    const tr=document.createElement("tr");
+    row.forEach((cell,i)=>{
+      if(i===profileCol) return;
+      const td=document.createElement("td");
+      if(cell.includes("@")) td.innerHTML=`<a href="mailto:${cell}">${cell}</a>`;
+      else if(cell.startsWith("http")) td.innerHTML=`<a href="${cell}" target="_blank">${cell}</a>`;
+      else td.textContent=cell;
+      tr.appendChild(td);
+    });
+    sheetTable.appendChild(tr);
+  });
+}
 
 fetch(sheetURL)
-  .then(res => res.text())
-  .then(csv => {
-    const rows = csv.trim().split("\n").map(r =>
-      r.split(",").map(c => c.replace(/"/g, "").trim())
-    );
+  .then(r=>r.text())
+  .then(csv=>{
+    const rows=csv.trim().split("\n").map(r=>r.split(",").map(c=>c.replace(/"/g,"").trim()));
+    const headers=rows.shift();
+    originalRows=[...rows];
+    render(rows,headers);
 
-    const headers = rows.shift();
+    searchBtn.onclick=()=>{
+      const q=searchInput.value.toLowerCase();
+      const filtered=originalRows.filter(r=>r.join(" ").toLowerCase().includes(q));
+      backBtn.style.display="inline-block";
+      render(filtered,headers);
+    };
 
-    const profileCol = headers.findIndex(h => h.toLowerCase().includes("profile"));
-    const codeCol = headers.findIndex(h => h.toLowerCase() === "code");
-
-    const linkCols = headers.map((h, i) =>
-      /social media|google drive/i.test(h) ? i : -1
-    ).filter(i => i !== -1);
-
-    rows.sort((a, b) => new Date(b[0]) - new Date(a[0]));
-
-    let orderedRows = rows;
-    if (focusedCode && codeCol !== -1) {
-      const match = rows.find(r => r[codeCol] === focusedCode);
-      if (match) {
-        orderedRows = [match, ...rows.filter(r => r !== match)];
-      }
-    }
-
-    const profileArea = document.getElementById("profileArea");
-    const table = document.getElementById("sheetTable");
-
-    /* Profile + Share */
-    if (orderedRows.length && profileCol !== -1) {
-      const row = orderedRows[0];
-      const fileId = extractDriveFileId(row[profileCol]);
-
-      if (fileId) {
-        const imgSrc = `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
-        const img = document.createElement("img");
-        img.src = imgSrc;
-        img.onclick = () => openFullscreen(imgSrc);
-        profileArea.appendChild(img);
-      }
-
-      if (codeCol !== -1) {
-        const share = document.createElement("span");
-        share.className = "share-btn";
-        share.textContent = "ᯓ➤";
-        share.onclick = () => shareLink(row[codeCol]);
-        profileArea.appendChild(share);
-      }
-    }
-
-    /* Header */
-    const trh = document.createElement("tr");
-    headers.forEach((h, i) => {
-      if (i !== profileCol) {
-        const th = document.createElement("th");
-        th.textContent = h;
-        trh.appendChild(th);
-      }
-    });
-    table.appendChild(trh);
-
-    /* Rows */
-    orderedRows.forEach(row => {
-      const tr = document.createElement("tr");
-      row.forEach((cell, i) => {
-        if (i === profileCol) return;
-
-        const td = document.createElement("td");
-        if (linkCols.includes(i) && cell.startsWith("http")) {
-          const a = document.createElement("a");
-          a.href = cell;
-          a.target = "_blank";
-          a.textContent = cell;
-          td.appendChild(a);
-        } else {
-          td.textContent = cell;
-        }
-        tr.appendChild(td);
-      });
-      table.appendChild(tr);
-    });
+    backBtn.onclick=()=>{
+      backBtn.style.display="none";
+      searchInput.value="";
+      render(originalRows,headers);
+    };
   });
 </script>
 
